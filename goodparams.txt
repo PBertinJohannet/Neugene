@@ -1,0 +1,11 @@
+for EasyCompilation
+
+params : 100, 50, 2, 1.0, 0.999, 0.05
+
+prob conf : 100
+grad iter : 20
+grad step : 0.01
+grad nbbatch : len/200
+lb nbbatch : len/50
+aim score : 0.1
+max iters : 25

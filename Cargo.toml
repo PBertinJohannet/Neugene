@@ -1,0 +1,12 @@
+[package]
+authors = ["pierre <pierre.bertin-johannet@orange.fr>"]
+name = "neugene"
+version = "0.1.0"
+
+[dependencies]
+ordered-float = "*"
+rand = "*"
+rulinalg = "*"
+
+[dependencies.lmsmw]
+git = "https://github.com/PBertinJohannet/Lmsmw"
