@@ -2,11 +2,18 @@
 authors = ["pierre <pierre.bertin-johannet@orange.fr>"]
 name = "neugene"
 version = "0.1.0"
+edition = "2018"
 
 [dependencies]
 ordered-float = "*"
 rand = "*"
 rulinalg = "*"
+gdk = "0.5.3"
+cairo-rs = "0.1.3"
 
 [dependencies.lmsmw]
 git = "https://github.com/PBertinJohannet/Lmsmw"
+
+[dependencies.gtk]
+version = "0.1.3"
+features = ["v3_16"]

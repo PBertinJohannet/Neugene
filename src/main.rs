@@ -1,4 +1,3 @@
-#![feature(iterator_flatten)]
 #![feature(box_patterns)]
 #![deny(missing_docs)]
 //! Trains neural network to supervise genetic algorithms, the neural network will get informations
@@ -7,29 +6,25 @@
 extern crate rand;
 extern crate rulinalg;
 extern crate ordered_float;
+extern crate gtk;
+extern crate cairo;
 #[macro_use]
 extern crate lmsmw;
 mod algogen;
 mod problems;
 mod reilearn;
-use problems::easycompilation::AllProblemsCompilation;
-use problems::ManyStepProblem;
-use problems::GenericProblem;
+mod graphics;
+mod params;
+
+use crate::params::*;
+use crate::problems::easycompilation::AllProblemsCompilation;
+use crate::problems::ManyStepProblem;
+use crate::problems::GenericProblem;
 use rand::{XorShiftRng, FromEntropy};
-use algogen::{AlgoGen, ParamChoice};
-use reilearn::{ReiLearn, LearnParams};
+use crate::algogen::{AlgoGen, ParamChoice};
+use crate::reilearn::{ReiLearn, LearnParams};
 use lmsmw::network::Network;
 
-const MAX_ITER : usize= 25;
-const TEST_DATA_SIZE : usize = 1000;
-const NB_EXAMPLE_PROBLEMS : usize = 100;
-const TESTS_PER_PROBLEM : usize = 50;
-const MAX_GEN : usize = 2;
-const STARTING_COEF : f64 = 1.0;
-const COEF_MODIFICATOR : f64 = 0.95;
-const PERCENT_ELITE : f64 = 0.05;
-const PROB_CONF_SIZE : usize = 100;
-const MAX_GENETIC_ALG_GEN : usize = 30;
 
 type Problem = AllProblemsCompilation;
 

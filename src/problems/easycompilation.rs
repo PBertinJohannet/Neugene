@@ -2,7 +2,7 @@
 //! Takes a problem randomly and acts as it.
 
 use rand::{XorShiftRng, Rng};
-use problems::{Solution, SingleStepProblem, GenericProblem, GenericSol};
+use crate::problems::{Solution, SingleStepProblem, GenericProblem, GenericSol};
 use super::{maze::MazeProblem, walljump::WallJumpProblem, easyproblem::EasyProblem,
             turnaround::TurnAroundProblem, lineareq::LinearEquationProblem};
 

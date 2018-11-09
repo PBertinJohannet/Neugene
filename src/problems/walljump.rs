@@ -14,7 +14,7 @@
 //!
 //! Level : Very Easy
 use rand::{XorShiftRng, Rng};
-use problems::{Solution, SingleStepProblem, GenericProblem, GenericSol};
+use crate::problems::{Solution, SingleStepProblem, GenericProblem, GenericSol};
 
 
 /// The starting position is between 0 and 10, the starting speed is between -5 and 5

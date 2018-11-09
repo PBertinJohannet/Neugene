@@ -2,7 +2,7 @@
 //! Very Easy
 
 use rand::{XorShiftRng, Rng, distributions::Standard};
-use problems::{Solution, SingleStepProblem, GenericProblem, GenericSol};
+use crate::problems::{Solution, SingleStepProblem, GenericProblem, GenericSol};
 
 /// The simplest possible problem
 /// minimise the difference between a serie of numbers and maximise the product.

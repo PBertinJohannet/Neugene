@@ -1,5 +1,5 @@
 use rand::{XorShiftRng, Rng};
-use problems::{ManyStepProblem, GenericProblem};
+use crate::problems::{ManyStepProblem, GenericProblem};
 use rulinalg::vector::Vector;
 
 /// One simple problem step by step.

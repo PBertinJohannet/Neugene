@@ -1,7 +1,7 @@
 //! Module algogen Defines a trait for this.
 use rulinalg::vector::Vector;
 use rand::XorShiftRng;
-use problems::{Solution, SingleStepProblem, ManyStepProblem, GenericProblem};
+use crate::problems::{Solution, SingleStepProblem, ManyStepProblem, GenericProblem};
 
 /// Represents the starting size of the population in individuals.
 const POP_START: f64 = 25.0;

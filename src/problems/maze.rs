@@ -3,7 +3,7 @@
 //!
 //! Level : Easy
 use rand::{XorShiftRng, Rng};
-use problems::{Solution, SingleStepProblem, GenericProblem, GenericSol};
+use crate::problems::{Solution, SingleStepProblem, GenericProblem, GenericSol};
 use rulinalg::vector::Vector;
 
 const SOL_SIZE : f64 = 2.0;

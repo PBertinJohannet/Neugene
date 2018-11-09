@@ -1,11 +1,14 @@
 //! The reilearn module
 /// Contains methods to apply reinforcment learning to lmsmw.
+/// does not work like usual reinforcment learning due to the fact that it is not choosing
+/// in a discrete set of options.
+///
 use lmsmw::{Learner, network::Network, ExamplesConfig};
 use lmsmw::Test;
 use rulinalg::vector::Vector;
 use rand::{XorShiftRng, FromEntropy, Rng};
-use problems::{ManyStepProblem};
-use ::{MAX_ITER, TEST_DATA_SIZE, MAX_GENETIC_ALG_GEN};
+use crate::problems::{ManyStepProblem};
+use crate::params::{TEST_DATA_SIZE, MAX_ITER, MAX_GENETIC_ALG_GEN};
 /// Represents a choice made by the neural network in a given situation.
 pub struct Choice {
     inputs : Vector<f64>,

@@ -3,7 +3,7 @@
 //! Solve Ax=y
 //! Level : Easy
 use rand::{XorShiftRng, Rng, distributions::Standard};
-use problems::{Solution, SingleStepProblem, GenericProblem, GenericSol};
+use crate::problems::{Solution, SingleStepProblem, GenericProblem, GenericSol};
 use rulinalg::{vector::Vector, matrix::Matrix};
 
 const MAT_SIZE : usize = 50;
