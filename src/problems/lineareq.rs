@@ -2,41 +2,58 @@
 //!
 //! Solve Ax=y
 //! Level : Easy
-use rand::{XorShiftRng, Rng, distributions::Standard};
-use crate::problems::{Solution, SingleStepProblem, GenericProblem, GenericSol};
-use rulinalg::{vector::Vector, matrix::Matrix};
+use crate::problems::{GenericProblem, GenericSol, SingleStepProblem, Solution};
+use rand::{distributions::Standard, Rng, XorShiftRng};
+use rulinalg::{matrix::Matrix, vector::Vector};
 
-const MAT_SIZE : usize = 50;
+const MAT_SIZE: usize = 50;
 
 #[derive(Clone, Debug)]
-pub struct LinearEquationProblem{
-    matrix_a : Matrix<f64>,
-    vector_y : Vector<f64>,
+pub struct LinearEquationProblem {
+    matrix_a: Matrix<f64>,
+    vector_y: Vector<f64>,
 }
 
 impl LinearEquationProblem {
-    fn play(&self, sol : &<Self as SingleStepProblem>::Sol, verbose : bool) -> f64 {
+    fn play(&self, sol: &<Self as SingleStepProblem>::Sol, verbose: bool) -> f64 {
         if verbose {
-            println!("expected : {}, got : {}",self.vector_y, &self.matrix_a*&sol.1)
+            println!(
+                "expected : {}, got : {}",
+                self.vector_y,
+                &self.matrix_a * &sol.1
+            )
         }
-        (MAT_SIZE*MAT_SIZE) as f64 - ((&self.matrix_a * &sol.1) - &self.vector_y).into_iter().map(f64::abs).sum::<f64>()
+        (MAT_SIZE * MAT_SIZE) as f64
+            - ((&self.matrix_a * &sol.1) - &self.vector_y)
+                .into_iter()
+                .map(f64::abs)
+                .sum::<f64>()
     }
 }
 
-impl GenericProblem for LinearEquationProblem{
+impl GenericProblem for LinearEquationProblem {
     type ProblemConfig = usize;
 
-    fn random(xsr: &mut XorShiftRng, _conf : &usize) -> Self {
+    fn random(xsr: &mut XorShiftRng, _conf: &usize) -> Self {
         LinearEquationProblem {
-            matrix_a: Matrix::new(MAT_SIZE, MAT_SIZE, xsr.sample_iter(&Standard).take(MAT_SIZE*MAT_SIZE).collect::<Vec<f64>>()),
-            vector_y: Vector::new(xsr.sample_iter(&Standard).take(MAT_SIZE).collect::<Vec<f64>>()),
+            matrix_a: Matrix::new(
+                MAT_SIZE,
+                MAT_SIZE,
+                xsr.sample_iter(&Standard)
+                    .take(MAT_SIZE * MAT_SIZE)
+                    .collect::<Vec<f64>>(),
+            ),
+            vector_y: Vector::new(
+                xsr.sample_iter(&Standard)
+                    .take(MAT_SIZE)
+                    .collect::<Vec<f64>>(),
+            ),
         }
     }
 
     fn print_state(&self) {
         println!("mat : {}, expected : {}", self.matrix_a, self.vector_y);
     }
-
 }
 
 impl SingleStepProblem for LinearEquationProblem {

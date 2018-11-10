@@ -1,39 +1,45 @@
-use crate::graphics::map::{Map, MapTrait, WIDTH, HEIGHT, zerotable, randomtable};
 
+
+use cairo::Context;
+use crate::graphics;
+use crate::graphics::SingleStepDrawable;
+use crate::graphics::{learn_back, DrawInstruction, Entity, ToDraw};
+use crate::problems;
+use crate::params::*;
 use gtk::prelude::*;
-use gtk::{Window, WindowType, DrawingArea, Button, ScrolledWindow};
-use std::thread;
+use gtk::{Button, DrawingArea, ScrolledWindow, Window, WindowType};
+use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
+use std::thread;
 
-const CELL_SIZE: i32 = 4;
 
 struct Shared {
-    map : Arc<Mutex<Map>>,
-    state : Arc<Mutex<State>>,
-    cell_size : Arc<Mutex<i32>>,
+    current_frames: Arc<Mutex<ToDraw>>,
+    next_frames: Arc<Mutex<ToDraw>>,
+    state: Arc<Mutex<State>>,
+    world_size: Arc<Mutex<[usize; 2]>>,
 }
 
 impl Shared {
-    pub fn new () -> Self {
+    pub fn new() -> Self {
         Shared {
-            map : Arc::new(Mutex::new(zerotable())),
-            state : Arc::new(Mutex::new(State{
-                        run: false,
-                        repaint: false,
-                        exited: false,
-                        next: false,
-                     })),
-            cell_size : Arc::new(Mutex::new(CELL_SIZE)),
+            current_frames: Arc::new(Mutex::new(ToDraw(Vec::new()))),
+            next_frames: Arc::new(Mutex::new(ToDraw(Vec::new()))),
+            state: Arc::new(Mutex::new(State {
+                run: true,
+                repaint: false,
+                exited: false,
+            })),
+            world_size: Arc::new(Mutex::new([1, 1])),
         }
     }
 }
 
 // `State` is used for handling events
-struct State{
+struct State {
     run: bool,
     repaint: bool,
     exited: bool,
-    next: bool,
 }
 
 // DrawingArea is wrapped in Area, look here:
@@ -41,160 +47,140 @@ struct State{
 #[derive(Clone)]
 struct Area(DrawingArea);
 
-unsafe impl Send for Area {
+unsafe impl Send for Area {}
+
+pub struct App<T: SingleStepDrawable + Clone> {
+    shared: Shared,
+    view: View,
+    phantom: PhantomData<T>,
 }
 
-pub struct App {
-    shared : Shared,
-    view : View,
-}
-
-impl App {
-    pub fn new() -> Result<Self, String>{
+impl<T: SingleStepDrawable + Clone> App<T>
+where
+    <T as problems::SingleStepProblem>::Sol: std::clone::Clone,
+    <T as problems::GenericProblem>::ProblemConfig: 'static,
+{
+    pub fn new() -> Result<Self, String> {
         let shared = Shared::new();
         let view = View::create()?;
         Ok(App {
             shared,
             view,
+            phantom: PhantomData,
         })
     }
 
-    pub fn start(&mut self) {
+    pub fn start(&mut self, conf: T::ProblemConfig) {
         self.view.pack_all();
-        self.connect_randomize();
-        self.connect_clear();
         self.connect_close();
         self.connect_draw();
-        self.connect_next();
-        self.connect_pause();
-        self.connect_zoom_in();
-        self.connect_zoom_out();
-        self.run();
+        self.run(conf);
+    }
+
+    /// Draws the given entities on the area using the given world size.
+    fn draw_entities(
+        this: &DrawingArea,
+        cr: &Context,
+        frame: Vec<Entity>,
+        world_size: &[usize; 2],
+    ) -> Inhibit {
+        println!("draw instruction entities! {}", frame.len());
+        cr.set_source_rgb(1f64, 1f64, 1f64);
+        cr.paint();
+        let (coef_x, coef_y) = (
+            (WIDTH as f64) / (world_size[0] as f64),
+        (HEIGHT as f64) / (world_size[1] as f64),
+        );
+        for [x, y, size_x, size_y, red, green, blue] in frame {
+            cr.set_source_rgb(red, green, blue);
+            cr.rectangle(coef_x * x, coef_y * y, coef_x * size_x, coef_y * size_y);
+            /*println!(
+                "draw ent : {}, {}, {}, {}, {}, {}, {}",
+                coef_x * x,
+                coef_y * y,
+                coef_x * size_x,
+                coef_y * size_y,
+                red,
+                green,
+                blue
+            );
+            println!("draw orig : {}, {}, {}, {}", x, y, size_x, size_y);*/
+            cr.fill();
+        }
+        Inhibit(true)
+    }
+
+    fn draw_instruction(
+        this: &DrawingArea,
+        cr: &Context,
+        current: &mut ToDraw,
+        next: &mut ToDraw,
+        world_size: &mut [usize; 2],
+    ) -> Inhibit {
+        let front = current.0.pop();
+        match front {
+            Some(DrawInstruction::WorldSize([x, y])) => {
+                *world_size = [x, y];
+                Self::draw_instruction(this, cr, current, next, world_size)
+            }
+            Some(DrawInstruction::Frame(frame)) => Self::draw_entities(this, cr, frame, world_size),
+            None => {
+                current.0 = next.0.clone().into_iter().rev().collect();
+                if current.0.len() > 0 {
+                    Self::draw_instruction(this, cr, current, next, world_size)
+                } else {
+                    Inhibit(true)
+                }
+            }
+        }
     }
 
     fn connect_draw(&mut self) {
         // also update the map each time we re-draw
-        let map = self.shared.map.clone();
+        let current_frames = self.shared.current_frames.clone();
+        let next_frames = self.shared.next_frames.clone();
+        let world_size = self.shared.world_size.clone();
         let state = self.shared.state.clone();
-        let cell_size = self.shared.cell_size.clone();
-        self.view.area.0.connect_draw( move |this, cr| {
-            let mut map = map.lock().unwrap();
-            {
+        self.view.area.0.connect_draw(move |this, cr| {
+            let mut current = current_frames.lock().unwrap();
+            let mut next = next_frames.lock().unwrap();
+            let mut world = world_size.lock().unwrap();
+            this.set_size_request(WIDTH, HEIGHT);
+            Self::draw_instruction(this, cr, &mut current, &mut next, &mut world)
+        });
+    }
+
+    fn spawn_main_thread(&mut self) -> thread::JoinHandle<()> {
+        let state = self.shared.state.clone();
+        let area = self.view.area.clone();
+
+        thread::spawn(move || {
+            let duration = std::time::Duration::from_millis(200);
+            loop {
+                thread::sleep(duration);
                 let mut state = state.lock().unwrap();
+                if state.exited {
+                    break;
+                }
                 if state.run {
-                    map.update();
-                }else if state.next {
-                    map.update();
-                    state.next = false;
+                    // `queue_draw` will ask gtk to
+                    // repaint the widget
+                    area.0.queue_draw();
+                } else if state.repaint {
+                    state.repaint = false;
+                    area.0.queue_draw();
                 }
             }
-            (|x: i32| {
-                this.set_size_request(WIDTH*x, HEIGHT*x);
-                cr.scale(x as f64, x as f64);
-            }) (*cell_size.lock().unwrap());
-            cr.set_source_rgb(1f64, 1f64, 1f64);
-            cr.paint();
-            cr.set_source_rgb(0f64, 0f64, 0f64);
-            for i in 0..WIDTH as usize { for j in 0..HEIGHT as usize {
-                if map[i][j] == 1 {
-                    cr.rectangle(i as f64, j as f64, 1.0, 1.0);
-                }
-            }}
-            cr.fill();
-            Inhibit(true)
-        });
+        })
     }
 
-    fn spawn_main_thread(&mut self) -> thread::JoinHandle<()>{
-            let state = self.shared.state.clone();
-            let area = self.view.area.clone();
-
-            thread::spawn(move || {
-                let duration = std::time::Duration::from_millis(50);
-                loop {
-                    thread::sleep(duration);
-                    let mut state = state.lock().unwrap();
-                    if state.exited {
-                        break;
-                    }
-                    if state.run {
-                        // `queue_draw` will ask gtk to
-                        // repaint the widget
-                        area.0.queue_draw();
-                    } else if state.repaint {
-                        state.repaint = false;
-                        area.0.queue_draw();
-                    }
-                }
-            })
+    pub fn spawn_learning_thread(&mut self, conf: T::ProblemConfig) -> thread::JoinHandle<()> {
+        let next = self.shared.next_frames.clone();
+        let arc_conf = Arc::new(Mutex::new(conf));
+        thread::spawn(move || learn_back::<T>(next, arc_conf))
     }
 
-    pub fn connect_randomize(&mut self){
-        let map = self.shared.map.clone();
-        let state = self.shared.state.clone();
-        self.view.random_button.connect_clicked( move |_| {
-            map.lock().unwrap().copy_from(&randomtable());
-            state.lock().unwrap().repaint = true;
-        });
-    }
-
-    pub fn connect_next(&mut self){
-        let state = self.shared.state.clone();
-        self.view.next_button.connect_clicked( move |_| {
-            let mut state = state.lock().unwrap();
-            if !state.run {
-                state.next = true;
-                state.repaint = true;
-            } else {
-                state.next = false;
-            }
-        });
-    }
-
-    pub fn connect_zoom_in(&mut self) {
-        let state = self.shared.state.clone();
-        let cell_size = self.shared.cell_size.clone();
-        self.view.zoom_in_button.connect_clicked( move |_| {
-            *cell_size.lock().unwrap() += 1;
-            state.lock().unwrap().repaint = true;
-        });
-    }
-
-    pub fn connect_zoom_out(&mut self){
-        let state = self.shared.state.clone();
-        let cell_size = self.shared.cell_size.clone();
-        self.view.zoom_out_button.connect_clicked( move |_| {
-            let mut x = cell_size.lock().unwrap();
-            if *x > CELL_SIZE {
-                *x -= 1;
-            }
-            state.lock().unwrap().repaint = true;
-        });
-    }
-
-    pub fn connect_pause (&mut self){
-        let state = self.shared.state.clone();
-        self.view.pause_button.connect_clicked( move |button| {
-            let mut state = state.lock().unwrap();
-            state.run = !state.run;
-            button.set_label(
-                if state.run { "Pause" }
-                    else { "Start" }
-            );
-        });
-    }
-
-    pub fn connect_clear(&mut self){
-            let map = self.shared.map.clone();
-            let state = self.shared.state.clone();
-            self.view.clear_button.connect_clicked( move |_| {
-                map.lock().unwrap().copy_from(&zerotable());
-                state.lock().unwrap().repaint = true;
-            });
-    }
-
-
-    pub fn connect_close(&mut self){
+    pub fn connect_close(&mut self) {
         {
             let state = self.shared.state.clone();
             self.view.window.connect_delete_event(move |_, _| {
@@ -206,8 +192,9 @@ impl App {
         }
     }
 
-    fn run(&mut self){
+    fn run(&mut self, conf: T::ProblemConfig) {
         let main_thread = self.spawn_main_thread();
+        let learning_thread = self.spawn_learning_thread(conf);
         gtk::main();
         // wait for the thread to stop
         match main_thread.join() {
@@ -218,31 +205,21 @@ impl App {
 }
 
 struct View {
-    window : Window,
-    hbox : gtk::Box,
-    button_box : gtk::ButtonBox,
-    pause_button : Button,
-    random_button : Button,
-    next_button : Button,
-    clear_button : Button,
-    zoom_in_button : Button,
-    zoom_out_button : Button,
-    area : Area,
-    scroller : ScrolledWindow,
+    window: Window,
+    hbox: gtk::Box,
+    button_box: gtk::ButtonBox,
+    pause_button: gtk::Button,
+    area: Area,
+    scroller: ScrolledWindow,
 }
 
 impl View {
-    pub fn create() -> Result<Self, String>{
+    pub fn create() -> Result<Self, String> {
         gtk::init().map_err(|e| String::from("gtk::init failed"))?;
         let window = Window::new(WindowType::Toplevel);
         let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let button_box = gtk::ButtonBox::new(gtk::Orientation::Vertical);
         let pause_button = Button::new_with_label("Start");
-        let random_button = Button::new_with_label("Randomize");
-        let next_button = Button::new_with_label("Next");
-        let clear_button = Button::new_with_label("Clear");
-        let zoom_in_button = Button::new_with_label("Zoom in");
-        let zoom_out_button = Button::new_with_label("Zoom out");
         let area = Area(DrawingArea::new());
         let scroller = ScrolledWindow::new(None, None);
         Ok(View {
@@ -250,33 +227,26 @@ impl View {
             hbox,
             button_box,
             pause_button,
-            random_button,
-            next_button,
-            clear_button,
-            zoom_in_button,
-            zoom_out_button,
             area,
             scroller,
         })
     }
 
     pub fn pack_all(&mut self) {
-        self.scroller.set_size_request(WIDTH*CELL_SIZE, HEIGHT*CELL_SIZE);
+        println!("pack all");
+        self.scroller
+            .set_size_request(WIDTH, HEIGHT );
         // disable auto-hide scrollbar
         self.scroller.set_overlay_scrolling(false);
 
         self.button_box.set_layout(gtk::ButtonBoxStyle::Start);
-        self.button_box.pack_start(&self.pause_button, false, false, 0);
-        self.button_box.pack_start(&self.next_button, false, false, 0);
-        self.button_box.pack_start(&self.random_button, false, false, 0);
-        self.button_box.pack_start(&self.clear_button, false, false, 0);
-        self.button_box.pack_start(&self.zoom_in_button, false, false, 0);
-        self.button_box.pack_start(&self.zoom_out_button, false, false, 0);
+        self.button_box
+            .pack_start(&self.pause_button, false, false, 0);
         self.scroller.add(&self.area.0);
         self.hbox.pack_start(&self.scroller, false, false, 0);
         self.hbox.pack_start(&self.button_box, false, false, 0);
         self.window.add(&self.hbox);
-        self.window.set_title("Game of Life");
+        self.window.set_title("Neugene");
         self.window.show_all();
     }
 }

@@ -1,12 +1,12 @@
 //! Compilation of all easy problems.
 //! Takes a problem randomly and acts as it.
 
-use rand::{XorShiftRng, Rng};
-use crate::problems::{Solution, SingleStepProblem, GenericProblem, GenericSol};
-use super::{maze::MazeProblem, walljump::WallJumpProblem, easyproblem::EasyProblem,
-            turnaround::TurnAroundProblem, lineareq::LinearEquationProblem};
-
-
+use super::{
+    easyproblem::EasyProblem, lineareq::LinearEquationProblem, maze::MazeProblem,
+    turnaround::TurnAroundProblem, walljump::WallJumpProblem,
+};
+use crate::problems::{GenericProblem, GenericSol, SingleStepProblem, Solution};
+use rand::{Rng, XorShiftRng};
 
 /// The simplest possible problem
 /// minimise the difference between a serie of numbers and maximise the product.
@@ -22,8 +22,8 @@ pub enum AllProblemsCompilation {
 impl GenericProblem for AllProblemsCompilation {
     type ProblemConfig = usize;
 
-    fn random(xsr: &mut XorShiftRng, conf : &usize) -> Self {
-        match xsr.gen_range(0, 4){
+    fn random(xsr: &mut XorShiftRng, conf: &usize) -> Self {
+        match xsr.gen_range(0, 4) {
             0 => AllProblemsCompilation::Maze(Box::new(MazeProblem::random(xsr, conf))),
             1 => AllProblemsCompilation::WallJump(Box::new(WallJumpProblem::random(xsr, conf))),
             2 => AllProblemsCompilation::Easy(Box::new(EasyProblem::random(xsr, conf))),
@@ -33,7 +33,7 @@ impl GenericProblem for AllProblemsCompilation {
     }
 
     fn print_state(&self) {
-        match self{
+        match self {
             AllProblemsCompilation::Maze(box p) => p.print_state(),
             AllProblemsCompilation::WallJump(box p) => p.print_state(),
             AllProblemsCompilation::LinEq(box p) => p.print_state(),
@@ -47,7 +47,7 @@ impl SingleStepProblem for AllProblemsCompilation {
     type Sol = GenericSol;
 
     fn get_sol_conf(&self) -> <<Self as SingleStepProblem>::Sol as Solution>::SolConfig {
-        match self{
+        match self {
             AllProblemsCompilation::Maze(box p) => p.get_sol_conf(),
             AllProblemsCompilation::WallJump(box p) => p.get_sol_conf(),
             AllProblemsCompilation::LinEq(box p) => p.get_sol_conf(),
@@ -57,7 +57,7 @@ impl SingleStepProblem for AllProblemsCompilation {
     }
 
     fn evaluate(&mut self, sol: &mut Self::Sol) -> f64 {
-        match self{
+        match self {
             AllProblemsCompilation::Maze(box p) => p.evaluate(sol),
             AllProblemsCompilation::WallJump(box p) => p.evaluate(sol),
             AllProblemsCompilation::LinEq(box p) => p.evaluate(sol),
@@ -67,7 +67,7 @@ impl SingleStepProblem for AllProblemsCompilation {
     }
 
     fn demonstrate(&self, sol: &Self::Sol) {
-        match self{
+        match self {
             AllProblemsCompilation::Maze(box p) => p.demonstrate(sol),
             AllProblemsCompilation::LinEq(box p) => p.demonstrate(sol),
             AllProblemsCompilation::WallJump(box p) => p.demonstrate(sol),

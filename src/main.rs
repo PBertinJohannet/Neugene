@@ -1,64 +1,69 @@
 #![feature(box_patterns)]
-#![deny(missing_docs)]
 //! Trains neural network to supervise genetic algorithms, the neural network will get informations
 //! about how the learning is going and make a choice about how to modify parameters such as the
 //! mutation rate, elitism, childs per survivors etc...
+extern crate cairo;
+extern crate gtk;
+extern crate ordered_float;
 extern crate rand;
 extern crate rulinalg;
-extern crate ordered_float;
-extern crate gtk;
-extern crate cairo;
 #[macro_use]
 extern crate lmsmw;
 mod algogen;
+pub mod graphics;
+mod params;
 mod problems;
 mod reilearn;
-mod graphics;
-mod params;
 
+use self::graphics::app;
+use crate::algogen::{AlgoGen, ParamChoice};
 use crate::params::*;
 use crate::problems::easycompilation::AllProblemsCompilation;
-use crate::problems::ManyStepProblem;
+use crate::problems::turnaround::TurnAroundProblem;
 use crate::problems::GenericProblem;
-use rand::{XorShiftRng, FromEntropy};
-use crate::algogen::{AlgoGen, ParamChoice};
-use crate::reilearn::{ReiLearn, LearnParams};
+use crate::problems::ManyStepProblem;
+use crate::reilearn::{LearnParams, ReiLearn};
 use lmsmw::network::Network;
-
-
-type Problem = AllProblemsCompilation;
+use rand::{FromEntropy, XorShiftRng};
+type Problem = TurnAroundProblem;
 
 /// Run the algorithm
 pub fn main() {
-    gen_network();
+    match &mut app::App::<Problem>::new() {
+        Ok(a) => a.start(PROB_CONF_SIZE),
+        Err(_) => panic!("gtk::init failed"),
+    }
 }
 
 /// Creates a network, making it learn to supervise genetic algorithms and print its score on a
 /// set of examples.
 pub fn gen_network() {
-    let learn_params = LearnParams::new(NB_EXAMPLE_PROBLEMS,
-                                            TESTS_PER_PROBLEM,
-                                            MAX_GEN,
-                                            STARTING_COEF,
-                                            COEF_MODIFICATOR,
-                                            PERCENT_ELITE);
+    let learn_params = LearnParams::new(
+        NB_EXAMPLE_PROBLEMS,
+        TESTS_PER_PROBLEM,
+        MAX_GEN,
+        STARTING_COEF,
+        COEF_MODIFICATOR,
+        PERCENT_ELITE,
+    );
     let mut random = XorShiftRng::from_entropy();
     let layers = layers![15, 40, 10, 6];
     let net = Network::new(layers, &mut random);
-    let mut rl =ReiLearn::<AlgoGen<Problem>>::new(net,
-                                                  PROB_CONF_SIZE,
-                                                  learn_params);
+    let mut rl = ReiLearn::<AlgoGen<Problem>>::new(net, PROB_CONF_SIZE, learn_params);
     normal_test(rl.get_test_problems().clone());
     loop {
-        println!("score on test data with network : {}", rl.run_on_test_example()/(TEST_DATA_SIZE as f64));
+        println!(
+            "score on test data with network : {}",
+            rl.run_on_test_example() / (TEST_DATA_SIZE as f64)
+        );
         rl.next_gen();
     }
 }
 
 /// Demonstrate how the network performs on a given problem.
-pub fn demo_first(mut a : AlgoGen<Problem>, net : &Network){
+pub fn demo_first(mut a: AlgoGen<Problem>, net: &Network) {
     println!("demo for first ");
-    for _ in 0..10{
+    for _ in 0..10 {
         a.print_state();
         let inputs = a.get_state();
         a.make_step(&net.feed_forward(&inputs));
@@ -67,13 +72,16 @@ pub fn demo_first(mut a : AlgoGen<Problem>, net : &Network){
 }
 
 /// Run a genetic algorithm with hand crafted parameters against the test problems.
-pub fn normal_test(mut algs : Vec<AlgoGen<Problem>>){
+pub fn normal_test(mut algs: Vec<AlgoGen<Problem>>) {
     let mut score = 0.0;
     for a in algs.iter_mut() {
-        for _ in 0..10{
+        for _ in 0..10 {
             a.next_gen(ParamChoice::same());
         }
-        score+=a.evaluate();
+        score += a.evaluate();
     }
-    println!("total score on test data without network is : {}", score/(TEST_DATA_SIZE as f64));
+    println!(
+        "total score on test data without network is : {}",
+        score / (TEST_DATA_SIZE as f64)
+    );
 }
