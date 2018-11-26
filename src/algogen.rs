@@ -1,9 +1,10 @@
 //! Module algogen Defines a trait for this.
-use crate::graphics::{DrawInstruction, Entity, Frame, ManyStepDrawable, SingleStepDrawable};
+use crate::graphics::{DrawInstruction, ManyStepDrawable, SingleStepDrawable};
 use crate::problems;
 use crate::problems::{GenericProblem, ManyStepProblem, SingleStepProblem, Solution};
-use rand::XorShiftRng;
+use rand::prelude::ThreadRng;
 use rulinalg::vector::Vector;
+
 /// Represents the starting size of the population in individuals.
 const POP_START: f64 = 25.0;
 /// Represent the mutation rate (0.1 = 10% modification in average).
@@ -132,7 +133,7 @@ impl GenResult {
 /// Proceed as told, see the next_gen function.
 #[derive(Debug, Clone)]
 pub struct AlgoGen<P: SingleStepProblem> {
-    random: XorShiftRng,
+    random: ThreadRng,
     pop: Vec<P::Sol>,
     params: ParamChoice,
     problem: P,
@@ -141,7 +142,7 @@ pub struct AlgoGen<P: SingleStepProblem> {
 }
 
 impl<P: SingleStepProblem> AlgoGen<P> {
-    pub fn initiate(prob_conf: P::ProblemConfig, my_rand: &mut XorShiftRng) -> Self {
+    pub fn initiate(prob_conf: P::ProblemConfig, my_rand: &mut ThreadRng) -> Self {
         let mut random = my_rand;
         let prob = P::random(&mut random, &prob_conf);
         let pop = (0..POP_START as usize)
@@ -198,6 +199,9 @@ impl<P: SingleStepProblem> AlgoGen<P> {
         if (self.pop.len() as f64 - self.params.kills) * self.params.birth_rate < 4.0 {
             self.params.birth_rate = 4.0 / (self.pop.len() as f64 - self.params.kills);
         }
+        if (self.pop.len() as f64 - self.params.kills) <= self.params.elite {
+            self.params.elite = (self.pop.len() as f64 - self.params.kills) - 1.0;
+        }
     }
 
     /// Updates the statistics.
@@ -240,6 +244,9 @@ impl<P: SingleStepProblem> AlgoGen<P> {
 
     /// Mutate the average performing individuals
     fn mutate_average(&mut self) {
+        if self.pop.len() <= self.params.elite as usize {
+            println!("echec {:?}", self.params);
+        }
         let nb_average = self.pop.len() - self.params.elite as usize;
         for i in nb_average..self.pop.len() {
             self.pop[i].mutate(self.params.mutrate, &mut self.random);
@@ -265,15 +272,55 @@ impl<P: SingleStepProblem> AlgoGen<P> {
         self.problem.demonstrate(self.pop.first().unwrap());
     }
 }
+/*
+impl<P: SingleStepProblem> SingleStepProblemSolver<P> for AlgoGen<P> {
+    fn solve_prob(&mut self, prob: P) -> P::Sol {
+        self.problem = prob;
+        let choice = self.params;
+        for _ in 0..MAX_GENETIC_ALG_GEN {
+            self.next_gen(choice);
+        }
+        self.best()
+    }
+}
 
+impl<P: SingleStepProblem> SupervisableSolver<P> for AlgoGen<P> {
+    type CreateParam = ();
+    type StepParam = ParamChoice;
+
+    fn take_prob(&mut self, prob: P) {
+        self.problem = prob;
+    }
+
+    fn next_step(&mut self, input: Self::StepParam) {
+        self.next_gen(input);
+    }
+
+    fn best_sol(&self) -> <P as SingleStepProblem>::Sol {
+        self.best()
+    }
+
+    fn get_state(&self) -> Vector<f64> {
+        self.last_res.clone().into_vector()
+    }
+
+    fn random(
+        xsr: &mut ThreadRng,
+        prob_conf: &<Self as SupervisableSolver<P>>::CreateParam,
+    ) -> Self {
+        Self::initiate(prob_conf, xsr)
+    }
+}
+*/
 impl<T: SingleStepProblem + Clone> GenericProblem for AlgoGen<T> {
     type ProblemConfig = T::ProblemConfig;
 
-    fn random(xsr: &mut XorShiftRng, prob_conf: &<Self as GenericProblem>::ProblemConfig) -> Self {
+    fn random(xsr: &mut ThreadRng, prob_conf: &<Self as GenericProblem>::ProblemConfig) -> Self {
         AlgoGen::<T>::initiate(prob_conf.clone(), xsr)
     }
 
     fn print_state(&self) {
+        //self.demonstrate();
         println!(
             "best : {}\tmin : {}\t pop : {}\n",
             self.last_res.max,

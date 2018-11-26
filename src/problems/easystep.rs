@@ -1,5 +1,5 @@
 use crate::problems::{GenericProblem, ManyStepProblem};
-use rand::{Rng, XorShiftRng};
+use rand::{prelude::ThreadRng, Rng};
 use rulinalg::vector::Vector;
 
 /// One simple problem step by step.
@@ -15,7 +15,7 @@ pub struct EasyStep {
 impl GenericProblem for EasyStep {
     type ProblemConfig = usize;
 
-    fn random(xsr: &mut XorShiftRng, conf: &usize) -> Self {
+    fn random(xsr: &mut ThreadRng, conf: &usize) -> Self {
         EasyStep {
             visited: (0..*conf).map(|_| 1.0).collect(),
             my_pos: xsr.gen::<usize>() % *conf,
@@ -35,7 +35,6 @@ impl GenericProblem for EasyStep {
         print!("\n");
     }
 }
-
 
 impl ManyStepProblem for EasyStep {
     fn get_state(&self) -> Vector<f64> {

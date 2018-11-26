@@ -1,9 +1,11 @@
-//! Just a problem where a ship must turn around
-//! Given an initial position and speed, find a way to come back to the original position
-//! Scores are calculated in the following way :
-//! -1.0 for every unit of distance at the end
+//! Example problem with a default AI
+//! two player game.
+//! get the problem as a ManyStep.
+//! every step, give the state to the AI.
+//! Automaticaly implement
 //!
-//! Level : Very Easy
+//! Level : Easy
+
 use crate::graphics::DrawInstruction;
 use crate::graphics::SingleStepDrawable;
 use crate::problems::{GenericProblem, GenericSol, SingleStepProblem, Solution};

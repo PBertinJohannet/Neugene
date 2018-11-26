@@ -242,9 +242,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "lmsmw"
 version = "0.1.0"
-source = "git+https://github.com/PBertinJohannet/Lmsmw#a79432b937cfb308706b681fa7a3c5cf1beb6617"
+source = "git+https://github.com/PBertinJohannet/Lmsmw#8181b7cd9f9eebcc1adc19ed4ea0a87360157137"
 dependencies = [
- "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num-traits 0.1.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rulinalg 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

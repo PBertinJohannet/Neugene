@@ -1,15 +1,12 @@
 pub mod app;
-use crate::algogen::{AlgoGen, ParamChoice};
+use crate::algogen::AlgoGen;
 use crate::params::*;
 use crate::problems;
-use crate::problems::easycompilation::AllProblemsCompilation;
-use crate::problems::maze::MazeProblem;
-use crate::problems::GenericProblem;
 use crate::problems::ManyStepProblem;
 use crate::problems::SingleStepProblem;
 use crate::reilearn::{LearnParams, ReiLearn};
 use lmsmw::network::Network;
-use rand::{FromEntropy, XorShiftRng};
+use rand::prelude::thread_rng;
 use std::sync::{Arc, Mutex};
 
 pub struct ToDraw(Vec<DrawInstruction>);
@@ -47,7 +44,7 @@ pub fn learn_back<T: SingleStepDrawable + Clone>(
         COEF_MODIFICATOR,
         PERCENT_ELITE,
     );
-    let mut random = XorShiftRng::from_entropy();
+    let mut random = thread_rng();
     let layers = layers![15, 40, 10, 6];
     let net = Network::new(layers, &mut random);
     let mut rl = ReiLearn::<AlgoGen<T>>::new(net, conf.lock().unwrap().clone(), learn_params);

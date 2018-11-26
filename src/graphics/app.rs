@@ -1,17 +1,13 @@
-
-
 use cairo::Context;
-use crate::graphics;
 use crate::graphics::SingleStepDrawable;
 use crate::graphics::{learn_back, DrawInstruction, Entity, ToDraw};
-use crate::problems;
 use crate::params::*;
+use crate::problems;
 use gtk::prelude::*;
 use gtk::{Button, DrawingArea, ScrolledWindow, Window, WindowType};
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 use std::thread;
-
 
 struct Shared {
     current_frames: Arc<Mutex<ToDraw>>,
@@ -79,17 +75,17 @@ where
 
     /// Draws the given entities on the area using the given world size.
     fn draw_entities(
-        this: &DrawingArea,
+        _this: &DrawingArea,
         cr: &Context,
         frame: Vec<Entity>,
         world_size: &[usize; 2],
     ) -> Inhibit {
-        println!("draw instruction entities! {}", frame.len());
+        //println!("draw instruction entities! {}", frame.len());
         cr.set_source_rgb(1f64, 1f64, 1f64);
         cr.paint();
         let (coef_x, coef_y) = (
             (WIDTH as f64) / (world_size[0] as f64),
-        (HEIGHT as f64) / (world_size[1] as f64),
+            (HEIGHT as f64) / (world_size[1] as f64),
         );
         for [x, y, size_x, size_y, red, green, blue] in frame {
             cr.set_source_rgb(red, green, blue);
@@ -140,7 +136,6 @@ where
         let current_frames = self.shared.current_frames.clone();
         let next_frames = self.shared.next_frames.clone();
         let world_size = self.shared.world_size.clone();
-        let state = self.shared.state.clone();
         self.view.area.0.connect_draw(move |this, cr| {
             let mut current = current_frames.lock().unwrap();
             let mut next = next_frames.lock().unwrap();
@@ -194,7 +189,7 @@ where
 
     fn run(&mut self, conf: T::ProblemConfig) {
         let main_thread = self.spawn_main_thread();
-        let learning_thread = self.spawn_learning_thread(conf);
+        let _learning_thread = self.spawn_learning_thread(conf);
         gtk::main();
         // wait for the thread to stop
         match main_thread.join() {
@@ -215,7 +210,7 @@ struct View {
 
 impl View {
     pub fn create() -> Result<Self, String> {
-        gtk::init().map_err(|e| String::from("gtk::init failed"))?;
+        gtk::init().map_err(|_| String::from("gtk::init failed"))?;
         let window = Window::new(WindowType::Toplevel);
         let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         let button_box = gtk::ButtonBox::new(gtk::Orientation::Vertical);
@@ -234,8 +229,7 @@ impl View {
 
     pub fn pack_all(&mut self) {
         println!("pack all");
-        self.scroller
-            .set_size_request(WIDTH, HEIGHT );
+        self.scroller.set_size_request(WIDTH, HEIGHT);
         // disable auto-hide scrollbar
         self.scroller.set_overlay_scrolling(false);
 

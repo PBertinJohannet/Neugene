@@ -14,7 +14,7 @@
 //!
 //! Level : Very Easy
 use crate::problems::{GenericProblem, GenericSol, SingleStepProblem, Solution};
-use rand::{Rng, XorShiftRng};
+use rand::{prelude::ThreadRng, Rng};
 
 /// The starting position is between 0 and 10, the starting speed is between -5 and 5
 #[derive(Clone, Debug)]
@@ -100,7 +100,7 @@ impl WallJumpProblem {
 impl GenericProblem for WallJumpProblem {
     type ProblemConfig = usize;
 
-    fn random(xsr: &mut XorShiftRng, _conf: &usize) -> Self {
+    fn random(xsr: &mut ThreadRng, _conf: &usize) -> Self {
         WallJumpProblem {
             wall_pos: 2.0 + xsr.gen::<f64>() * 10.0,
             wall_height: 5.0 + xsr.gen::<f64>() * 10.0,

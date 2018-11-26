@@ -3,10 +3,11 @@
 //! Solve Ax=y
 //! Level : Easy
 use crate::problems::{GenericProblem, GenericSol, SingleStepProblem, Solution};
-use rand::{distributions::Standard, Rng, XorShiftRng};
-use rulinalg::{matrix::Matrix, vector::Vector};
-
-const MAT_SIZE: usize = 50;
+use rand::{distributions::Standard, prelude::ThreadRng, Rng};
+use rulinalg::{
+    matrix::{BaseMatrix, Matrix},
+    vector::Vector,
+};
 
 #[derive(Clone, Debug)]
 pub struct LinearEquationProblem {
@@ -15,15 +16,8 @@ pub struct LinearEquationProblem {
 }
 
 impl LinearEquationProblem {
-    fn play(&self, sol: &<Self as SingleStepProblem>::Sol, verbose: bool) -> f64 {
-        if verbose {
-            println!(
-                "expected : {}, got : {}",
-                self.vector_y,
-                &self.matrix_a * &sol.1
-            )
-        }
-        (MAT_SIZE * MAT_SIZE) as f64
+    fn play(&self, sol: &<Self as SingleStepProblem>::Sol, _: bool) -> f64 {
+        (self.matrix_a.cols() * self.matrix_a.cols()) as f64
             - ((&self.matrix_a * &sol.1) - &self.vector_y)
                 .into_iter()
                 .map(f64::abs)
@@ -34,18 +28,18 @@ impl LinearEquationProblem {
 impl GenericProblem for LinearEquationProblem {
     type ProblemConfig = usize;
 
-    fn random(xsr: &mut XorShiftRng, _conf: &usize) -> Self {
+    fn random(xsr: &mut ThreadRng, _conf: &usize) -> Self {
         LinearEquationProblem {
             matrix_a: Matrix::new(
-                MAT_SIZE,
-                MAT_SIZE,
+                *_conf,
+                *_conf,
                 xsr.sample_iter(&Standard)
-                    .take(MAT_SIZE * MAT_SIZE)
+                    .take(*_conf * *_conf)
                     .collect::<Vec<f64>>(),
             ),
             vector_y: Vector::new(
                 xsr.sample_iter(&Standard)
-                    .take(MAT_SIZE)
+                    .take(*_conf)
                     .collect::<Vec<f64>>(),
             ),
         }
@@ -60,7 +54,7 @@ impl SingleStepProblem for LinearEquationProblem {
     type Sol = GenericSol;
 
     fn get_sol_conf(&self) -> <<Self as SingleStepProblem>::Sol as Solution>::SolConfig {
-        MAT_SIZE
+        self.vector_y.size()
     }
 
     /// Plays a full game.

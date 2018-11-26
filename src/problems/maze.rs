@@ -4,7 +4,7 @@
 use crate::graphics::DrawInstruction;
 use crate::graphics::SingleStepDrawable;
 use crate::problems::{GenericProblem, GenericSol, SingleStepProblem, Solution};
-use rand::{Rng, XorShiftRng};
+use rand::{prelude::ThreadRng, Rng};
 use rulinalg::vector::Vector;
 
 const SOL_SIZE: f64 = 10.0;
@@ -49,7 +49,7 @@ impl MazeProblem {
     /// When exploring an area, checks that it has only a maximum of 1 neibourgh explored
     /// A possible move must not
     /// Returns the end of the maze.
-    fn create_maze(maze: &mut Vec<Vec<bool>>, xsr: &mut XorShiftRng) -> Vec<usize> {
+    fn create_maze(maze: &mut Vec<Vec<bool>>, xsr: &mut ThreadRng) -> Vec<usize> {
         let current_pos = vec![0usize, 0usize];
         let mut queue = vec![current_pos.clone()];
         let mut farthest = (0, vec![0, 0]);
@@ -113,10 +113,10 @@ impl MazeProblem {
         }
     }
 
-    fn into_move(mv : f64) -> i32 {
+    fn into_move(mv: f64) -> i32 {
         if mv > 0.0 {
             1
-        } else if mv < 0.0{
+        } else if mv < 0.0 {
             -1
         } else {
             0
@@ -139,7 +139,7 @@ impl MazeProblem {
             }
             mv[0] = Self::clamp(sol.1[i]);
             mv[1] = Self::clamp(sol.1[i * 2]);
-            if mv[0].abs() > mv[1].abs(){
+            if mv[0].abs() > mv[1].abs() {
                 mv[1] = 0.0;
             } else {
                 mv[0] = 0.0;
@@ -147,7 +147,10 @@ impl MazeProblem {
             //mv[0] = 0.8;
             //mv[1] = 0.8;
             // get future block
-            let pos_future = vec![pos[0] + Self::into_move(mv[0]), pos[1] + Self::into_move(mv[1])];
+            let pos_future = vec![
+                pos[0] + Self::into_move(mv[0]),
+                pos[1] + Self::into_move(mv[1]),
+            ];
             let (block_x, block_y) = (
                 self.validate_pos(pos_future[0] as usize),
                 self.validate_pos(pos_future[1] as usize),
@@ -161,9 +164,9 @@ impl MazeProblem {
 
     fn pathfind(&self, pos: Vec<f64>) -> f64 {
         (Vector::new(pos) - Vector::new(self.end.clone()))
-                .iter()
-                .map(|a| a.abs())
-                .sum::<f64>()
+            .iter()
+            .map(|a| a.abs())
+            .sum::<f64>()
     }
 
     fn print_pos(&self, pos: &Vec<i32>) {
@@ -217,7 +220,7 @@ impl SingleStepDrawable for MazeProblem {
 impl GenericProblem for MazeProblem {
     type ProblemConfig = usize;
 
-    fn random(xsr: &mut XorShiftRng, conf: &usize) -> Self {
+    fn random(xsr: &mut ThreadRng, conf: &usize) -> Self {
         let mut maze: Vec<Vec<bool>> = (0..*conf)
             .map(|_| (0..*conf).map(|_| false).collect())
             .collect();

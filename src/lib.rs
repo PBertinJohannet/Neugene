@@ -1,4 +1,3 @@
-#![feature(iterator_flatten)]
 #![feature(box_patterns)]
 //! Trains neural network to supervise genetic algorithms, the neural network will get informations
 //! about how the learning is going and make a choice about how to modify parameters such as the

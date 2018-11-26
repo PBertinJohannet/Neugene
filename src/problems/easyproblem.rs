@@ -2,7 +2,7 @@
 //! Very Easy
 
 use crate::problems::{GenericProblem, GenericSol, SingleStepProblem, Solution};
-use rand::{distributions::Standard, Rng, XorShiftRng};
+use rand::{distributions::Standard, prelude::ThreadRng, Rng};
 
 /// The simplest possible problem
 /// minimise the difference between a serie of numbers and maximise the product.
@@ -14,7 +14,7 @@ pub struct EasyProblem {
 impl GenericProblem for EasyProblem {
     type ProblemConfig = usize;
 
-    fn random(xsr: &mut XorShiftRng, conf: &usize) -> Self {
+    fn random(xsr: &mut ThreadRng, conf: &usize) -> Self {
         EasyProblem {
             numbers: xsr
                 .sample_iter(&Standard)

@@ -6,7 +6,7 @@ use super::{
     turnaround::TurnAroundProblem, walljump::WallJumpProblem,
 };
 use crate::problems::{GenericProblem, GenericSol, SingleStepProblem, Solution};
-use rand::{Rng, XorShiftRng};
+use rand::{prelude::ThreadRng, Rng};
 
 /// The simplest possible problem
 /// minimise the difference between a serie of numbers and maximise the product.
@@ -22,7 +22,7 @@ pub enum AllProblemsCompilation {
 impl GenericProblem for AllProblemsCompilation {
     type ProblemConfig = usize;
 
-    fn random(xsr: &mut XorShiftRng, conf: &usize) -> Self {
+    fn random(xsr: &mut ThreadRng, conf: &usize) -> Self {
         match xsr.gen_range(0, 4) {
             0 => AllProblemsCompilation::Maze(Box::new(MazeProblem::random(xsr, conf))),
             1 => AllProblemsCompilation::WallJump(Box::new(WallJumpProblem::random(xsr, conf))),

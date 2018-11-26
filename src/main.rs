@@ -18,13 +18,12 @@ mod reilearn;
 use self::graphics::app;
 use crate::algogen::{AlgoGen, ParamChoice};
 use crate::params::*;
-use crate::problems::easycompilation::AllProblemsCompilation;
 use crate::problems::turnaround::TurnAroundProblem;
 use crate::problems::GenericProblem;
 use crate::problems::ManyStepProblem;
 use crate::reilearn::{LearnParams, ReiLearn};
 use lmsmw::network::Network;
-use rand::{FromEntropy, XorShiftRng};
+use rand::prelude::thread_rng;
 type Problem = TurnAroundProblem;
 
 /// Run the algorithm
@@ -46,17 +45,20 @@ pub fn gen_network() {
         COEF_MODIFICATOR,
         PERCENT_ELITE,
     );
-    let mut random = XorShiftRng::from_entropy();
+    let mut random = thread_rng();
     let layers = layers![15, 40, 10, 6];
     let net = Network::new(layers, &mut random);
     let mut rl = ReiLearn::<AlgoGen<Problem>>::new(net, PROB_CONF_SIZE, learn_params);
     normal_test(rl.get_test_problems().clone());
+    let mut random = thread_rng();
+    rl.demonstrate_on(AlgoGen::initiate(600, &mut random));
     loop {
         println!(
             "score on test data with network : {}",
-            rl.run_on_test_example() / (TEST_DATA_SIZE as f64)
+            rl.run_on_test_example() / (1000_000.0 * TEST_DATA_SIZE as f64)
         );
         rl.next_gen();
+        rl.demonstrate_on(AlgoGen::initiate(1000, &mut random));
     }
 }
 
@@ -82,6 +84,6 @@ pub fn normal_test(mut algs: Vec<AlgoGen<Problem>>) {
     }
     println!(
         "total score on test data without network is : {}",
-        score / (TEST_DATA_SIZE as f64)
+        score / (1000_000.0 * TEST_DATA_SIZE as f64)
     );
 }

@@ -1,5 +1,5 @@
 //! The reilearn module
-use crate::graphics::{DrawInstruction, Frame, ManyStepDrawable};
+use crate::graphics::{DrawInstruction, ManyStepDrawable};
 use crate::params::{MAX_GENETIC_ALG_GEN, MAX_ITER, TEST_DATA_SIZE};
 use crate::problems::ManyStepProblem;
 use lmsmw::Test;
@@ -8,7 +8,10 @@ use lmsmw::Test;
 /// in a discrete set of options.
 ///
 use lmsmw::{network::Network, ExamplesConfig, Learner};
-use rand::{FromEntropy, Rng, XorShiftRng};
+use rand::{
+    prelude::{thread_rng, ThreadRng},
+    Rng,
+};
 use rulinalg::vector::Vector;
 /// Represents a choice made by the neural network in a given situation.
 pub struct Choice {
@@ -78,7 +81,7 @@ impl LearnParams {
 pub struct ReiLearn<P: ManyStepProblem> {
     test_problems: Vec<P>,
     net: Network,
-    random: XorShiftRng,
+    random: ThreadRng,
     params: LearnParams,
     problem_confs: P::ProblemConfig,
     pub coef: f64,
@@ -86,7 +89,7 @@ pub struct ReiLearn<P: ManyStepProblem> {
 
 impl<P: ManyStepProblem> ReiLearn<P> {
     pub fn new(net: Network, prob_conf: P::ProblemConfig, learn_param: LearnParams) -> Self {
-        let mut my_rand = XorShiftRng::from_entropy();
+        let mut my_rand = thread_rng();
         ReiLearn {
             coef: learn_param.starting_coef,
             test_problems: (0..TEST_DATA_SIZE)
@@ -107,6 +110,7 @@ impl<P: ManyStepProblem> ReiLearn<P> {
         &self.test_problems
     }
 
+    #[allow(dead_code)]
     pub fn demonstrate(&self) {
         for p in self.test_problems.iter() {
             let mut prob = p.clone();
@@ -121,6 +125,20 @@ impl<P: ManyStepProblem> ReiLearn<P> {
             prob.print_state();
             println!("demo \n")
         }
+    }
+
+    pub fn demonstrate_on(&self, p: P) {
+        let mut prob = p.clone();
+        for _ in 0..p.max_step().unwrap_or(MAX_GENETIC_ALG_GEN) {
+            prob.print_state();
+            let inputs = prob.get_state();
+            prob.make_step(&self.net.feed_forward(&inputs));
+            if prob.is_solved() {
+                break;
+            }
+        }
+        prob.print_state();
+        println!("demo \n")
     }
 
     pub fn run_on_test_example(&self) -> f64 {
@@ -263,7 +281,6 @@ impl<P: ManyStepDrawable> ReiLearn<P> {
             prob.print_state();
             println!("append frames : ");
             frames.append(&mut prob.get_frames());
-            println!("\n")
         }
         println!("done\n");
         frames
